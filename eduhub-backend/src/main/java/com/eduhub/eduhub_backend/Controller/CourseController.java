@@ -1,44 +1,98 @@
 package com.eduhub.eduhub_backend.Controller;
 
-import com.eduhub.eduhub_backend.Component.Course;
+
+import com.eduhub.eduhub_backend.component.Course;
+import com.eduhub.eduhub_backend.exceptions.ResourceNotFoudException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @RestController
-@RequestMapping("/course")
 public class CourseController {
 
-    @GetMapping
-    public Course getCourse() {
+    List<Course>courseList=new ArrayList<>();
 
-        Course course = new Course();
-
-        course.setCourseCode("CS101");
-        course.setCourseName("Java Programming");
-        course.setCredits(4);
-
-        return course;
+    public  CourseController(Course course){
+        courseList.add(new Course("U23MA408", "Maths", 4));
+        courseList.add(new Course("U23SY408", "Cyber Security", 2));
+        courseList.add(new Course("U23CS408", "OSS", 4));
+        courseList.add(new Course("U23IT408", "CC", 4));
+        courseList.add(new Course("U23CS408", "OOSE", 4));
     }
 
-    @PostMapping("/create")
-    public ResponseEntity<Course> createCourse(@RequestBody Course course) {
 
-        System.out.println(course.getCourseCode());
-        System.out.println(course.getCourseName());
-        System.out.println(course.getCredits());
+    @GetMapping("courses")
+    public ResponseEntity<List<Course>>getCourses()
+    {
+        return new ResponseEntity<>(courseList,HttpStatus.OK);
+    }
 
+    @GetMapping("courses/{id}")
+    public ResponseEntity<Course>getCourse(@PathVariable("id") String courseCode)
+    {
+        for(Course i:courseList) {
+            if(i.getCourseCode().equals(courseCode)) {
+                return ResponseEntity.ok(i);
+            }
+        }
+        return courseList.stream().filter(course -> course.getCourseCode().equalsIgnoreCase(courseCode))
+                .findFirst().map(ResponseEntity::ok)
+                .orElseThrow(()->new ResourceNotFoudException("Course","courseCode",courseCode));
+
+
+    }
+
+    @GetMapping("courses/search")
+    public ResponseEntity<Course>searchCourse(@RequestParam String courseCode)
+    {
+        for(Course i:courseList) {
+            if(i.getCourseCode().equals(courseCode)) {
+                return ResponseEntity.ok(i);
+            }
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @PostMapping("courses/add")
+    public ResponseEntity<Course>addCourse(@RequestBody Course course)
+    {
+        courseList.add(course);
         return ResponseEntity.ok(course);
     }
 
-    @PutMapping("/{code}/update")
-    public ResponseEntity updateCourse(
-            @PathVariable("code") String courseCode,
-            @RequestBody Course course) {
+    @PutMapping("courses/update/{id}")
+    public ResponseEntity<Course>updateCourse(@PathVariable("id") String courseCode,@RequestBody Course course)
+    {
+        Course course1=courseList.stream().filter(course2->course2.getCourseCode().equalsIgnoreCase(courseCode))
+                .findFirst()
+                .orElseThrow(()->new ResourceNotFoudException("Course","CourseCode",courseCode));
+        course1.setCourseName(course.getCourseName());
+        course1.setCredits(course.getCredits());
 
-        System.out.println(courseCode);
-        System.out.println(course.getCourseName());
-        System.out.println(course.getCredits());
+        return ResponseEntity.ok(course1);
+    }
 
-        return ResponseEntity.accepted().body("Course Updated Successfully");
+    @DeleteMapping("courses/delete/{id}")
+    public  ResponseEntity<List<Course>>deleteCourse(@PathVariable("id") String courseCode)
+    {
+        for(Course i:courseList)
+        {
+            if(i.getCourseCode().equals(courseCode))
+            {
+                courseList.remove(i);
+            }
+        }
+        return ResponseEntity.ok(courseList);
+    }
+    @PutMapping("/query/{code}")
+    public String queryCourse(@PathVariable("code") String CourseCode)
+    {
+        if(CourseCode.startsWith("*")){
+            throw new ResourceNotFoudException("Course","CourseCode",CourseCode);
+        }
+        return CourseCode;
     }
 }
